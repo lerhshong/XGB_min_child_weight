@@ -1,0 +1,934 @@
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\use_minted 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 1cm
+\topmargin 1cm
+\rightmargin 1cm
+\bottommargin 1cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Standard
+Suppose there are 
+\begin_inset Formula $K$
+\end_inset
+
+ trees (n_estimators = 
+\begin_inset Formula $K$
+\end_inset
+
+).
+ Then the prediction of the model for a given input 
+\begin_inset Formula $x_{i}$
+\end_inset
+
+ is
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\hat{y_{i}}=\phi(x_{i})=\sum_{k=1}^{K}f_{k}(x_{i})
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The loss of the model is calculated as:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+L(\phi)=\sum_{i}l(\hat{y_{i}},y)+\sum_{k}\Omega(f_{k})
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the first term is the loss of each data point, while the second term
+ is a complexity penalty of each tree.
+\end_layout
+
+\begin_layout Standard
+The parameters are 
+\begin_inset Formula $f_{k}$
+\end_inset
+
+ , so we want to minimize this by differentiating with respect to 
+\begin_inset Formula $f_{k}$
+\end_inset
+
+ and finding the optimal 
+\begin_inset Formula $f_{k}$
+\end_inset
+
+ .
+ However this can't be done because the 
+\begin_inset Formula $f_{k}$
+\end_inset
+
+ are functions.
+ Thus we train in an additive manner.
+\end_layout
+
+\begin_layout Standard
+At boosting iteration 
+\begin_inset Formula $t$
+\end_inset
+
+, we have
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{equation}
+L^{(t)}=\sum_{i}l(y_{i},\hat{y_{i}}^{(t-1)}+f_{t}(x_{i}))+\Omega(f_{t})
+\end{equation}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $f_{t}$
+\end_inset
+
+ is our candidate tree that we're thinking of adding to the ensemble.
+\end_layout
+
+\begin_layout Standard
+At this point, we introduce some tricks to reduce this to a tractable algorithm.
+ The first step is using 2nd order approximation, by Taylor's theorem.
+\end_layout
+
+\begin_layout Subsubsection*
+Taylor: 
+\begin_inset Formula $f$
+\end_inset
+
+ differentiable at 
+\begin_inset Formula $a$
+\end_inset
+
+, then Taylor expansion around 
+\begin_inset Formula $a$
+\end_inset
+
+ is
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+f(a)+\frac{f'(a)}{1!}(x-a)+\frac{f''(a)}{2!}(x-a)^{2}+...
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For compactness we'll write the first order differential, 
+\begin_inset Formula $f'(a)$
+\end_inset
+
+ as 
+\begin_inset Formula $g$
+\end_inset
+
+ and the second order differential, 
+\begin_inset Formula $f''(a)$
+\end_inset
+
+ as 
+\begin_inset Formula $h$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Use Taylor for the loss function.
+ Keep in mind that 
+\begin_inset Formula $\hat{y}$
+\end_inset
+
+ plays the role of 
+\begin_inset Formula $x$
+\end_inset
+
+ in the theorem above, and that 
+\begin_inset Formula $y$
+\end_inset
+
+ is a constant here (it's a label, and we know its value).
+\end_layout
+
+\begin_layout Standard
+Thus, we have that
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray*}
+l(y,\hat{y}) & \approx & l(y,a)+g(\hat{y}-a)+\frac{1}{2}h(\hat{y}-a)^{2}\\
+ & = & l(y,a)+g(\hat{y}^{(t-1)}+f_{t}(x)-a)+\frac{1}{2}h(\hat{y}^{(t-1)}+f_{t}(x)-a)^{2}\\
+ & = & l(y,\hat{y}^{(t-1)})+gf(x)+\frac{1}{2}hf_{t}^{2}(x)
+\end{eqnarray*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the last line follows by choosing 
+\begin_inset Formula $a=\hat{y}^{(t-1)}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+We can substitute this into 
+\begin_inset Formula $(1)$
+\end_inset
+
+ and remove constant terms to see that the loss at boosting iteration 
+\begin_inset Formula $t$
+\end_inset
+
+ is
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+L^{(t)}=\sum_{i}[g_{i}f_{t}(x_{i})+\frac{1}{2}h_{i}f_{t}^{2}(x_{i})]+\Omega(f_{t})
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Since 
+\begin_inset Formula $y$
+\end_inset
+
+, 
+\begin_inset Formula $\hat{y}^{(t-1)}$
+\end_inset
+
+are already known, they are constants and can be removed.
+ The sum is for all data points (i.e.
+ each data point has its own 
+\begin_inset Formula $g_{i}$
+\end_inset
+
+ and 
+\begin_inset Formula $h_{i}$
+\end_inset
+
+ , and we don't forget the complexity of our candidate tree 
+\begin_inset Formula $f_{t}$
+\end_inset
+
+.
+ Keep in mind that the differentiation in 
+\begin_inset Formula $g_{i}$
+\end_inset
+
+ and 
+\begin_inset Formula $h_{i}$
+\end_inset
+
+ is with respect to the previous prediction 
+\begin_inset Formula $\hat{y}^{t-1}$
+\end_inset
+
+.
+ Our next step is to open up the complexity term 
+\begin_inset Formula $\Omega$
+\end_inset
+
+ for further simplification.
+\end_layout
+
+\begin_layout Standard
+Substitute
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\Omega(f_{t})=\gamma T+\frac{1}{2}\lambda\sum_{j=1}^{T}w_{j}^{2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $T:$
+\end_inset
+
+ Number of leaves of the candidate tree.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\lambda:$
+\end_inset
+
+ Regularization parameter for the leaf scores 
+\begin_inset Formula $w_{j}$
+\end_inset
+
+ in the tree.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $\gamma:$
+\end_inset
+
+ Regularization parameter for the number of leaves in the tree.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula $w_{j}:$
+\end_inset
+
+ Leaf score of leaf 
+\begin_inset Formula $j$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Note that in the list of hyperparameters for xgboost, 
+\begin_inset Formula $\gamma$
+\end_inset
+
+ is known as 'mininum split loss'.
+ It isn't obvious from here why it has such a name yet, but as we progress
+ further we shall see the reason behind its name.
+\end_layout
+
+\begin_layout Standard
+With the above substitution, we have
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray}
+L^{(t)} & = & \sum_{i}[g_{i}f_{t}(x_{i})+\frac{1}{2}h_{i}f_{t}^{2}(x_{i})]+\gamma T+\frac{1}{2}\lambda\sum_{j=1}^{T}w_{j}^{2}\nonumber \\
+ & = & \sum_{i}[g_{i}w_{j}(x_{i})+\frac{1}{2}h_{i}w_{j}^{2}(x_{i})]+\gamma T+\frac{1}{2}\lambda\sum_{j=1}^{T}w_{j}^{2}\\
+ & = & \sum_{j=1}^{T}[(\sum_{i\in I_{j}}g_{i})w_{j}+\frac{1}{2}(\sum_{i\in I_{j}}h_{i}+\lambda)w_{j}^{2}]+\gamma T\\
+ & = & \sum_{j=1}^{T}[G_{j}w_{j}+\frac{1}{2}(H_{j}+\lambda)w_{j}^{2}]+\gamma T
+\end{eqnarray}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We got to 
+\begin_inset Formula $(2)$
+\end_inset
+
+ by simply re-writing 
+\begin_inset Formula $f_{t}(x_{i})$
+\end_inset
+
+ in a more suggestive manner - each data point 
+\begin_inset Formula $x_{i}$
+\end_inset
+
+ would be sent down the tree to finally reach a leaf, with corresponding
+ score 
+\begin_inset Formula $w_{j}$
+\end_inset
+
+.
+ 
+\begin_inset Formula $w_{j}(x_{i})$
+\end_inset
+
+ is the same meaning as, 'the leaf score 
+\begin_inset Formula $w_{j}$
+\end_inset
+
+ that we would get if we sent 
+\begin_inset Formula $x_{i}$
+\end_inset
+
+ down the tree'.
+\end_layout
+
+\begin_layout Standard
+To move to 
+\begin_inset Formula $(3)$
+\end_inset
+
+, we move from summing over the data points to summing over the leaves.
+ The first summand in 
+\begin_inset Formula $(2)$
+\end_inset
+
+ was for all data points, from 
+\begin_inset Formula $i=1$
+\end_inset
+
+ to 
+\begin_inset Formula $i=n$
+\end_inset
+
+, while picking up each point's gradient 
+\begin_inset Formula $g_{i}$
+\end_inset
+
+ and hessian 
+\begin_inset Formula $h_{i}$
+\end_inset
+
+ in the sum.
+ As in 
+\begin_inset Formula $(2)$
+\end_inset
+
+ , all data points 
+\begin_inset Formula $x_{i}$
+\end_inset
+
+ will eventually be sent to all leaves, so we can group together the data
+ points falling in each leaf.
+ Their output 
+\begin_inset Formula $w_{j}$
+\end_inset
+
+ is the same, though their individual gradients 
+\begin_inset Formula $g_{i}$
+\end_inset
+
+ and hessians 
+\begin_inset Formula $h_{i}$
+\end_inset
+
+ are possibly different.
+\end_layout
+
+\begin_layout Standard
+Finally, to get to 
+\begin_inset Formula $(4)$
+\end_inset
+
+ we simply rewrite 
+\begin_inset Formula $G_{j}=\sum_{i\in I_{j}}g_{i}$
+\end_inset
+
+ and 
+\begin_inset Formula $H_{j}=\sum_{i\in I_{j}}h_{i}$
+\end_inset
+
+ for compactness.
+\end_layout
+
+\begin_layout Standard
+Now that we have made this simplification, we can find the optimal leaf
+ score 
+\begin_inset Formula $w_{j}^{*}$
+\end_inset
+
+ by differentiating 
+\begin_inset Formula $L^{(t)}$
+\end_inset
+
+ with respect to 
+\begin_inset Formula $w_{j}$
+\end_inset
+
+ , setting equals zero and solving.
+ Thus we have
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\frac{\partial L^{(t)}}{\partial w_{j}}=G_{j}+(H_{j}+\lambda)w_{j}^{*}=0\implies w_{j}^{*}=-\frac{G_{j}}{H_{j}+\lambda}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Thus the prediction on each leaf is dependent on the gradients of the points
+ in that leaf, the hessian of the points in that leaf, and the regularization
+ parameter 
+\begin_inset Formula $\lambda$
+\end_inset
+
+ which is a hyperparameter option, known as 'reg_lambda'.
+\end_layout
+
+\begin_layout Standard
+We can substitute this into the loss function 
+\begin_inset Formula $L^{(t)}$
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray*}
+L^{(t)} & = & \sum_{j=1}^{T}[-\frac{G_{j}^{2}}{H_{j}+\lambda}+\frac{1}{2}\frac{G_{j}^{2}}{(H_{j}+\lambda)}]+\gamma T\\
+ & = & \sum_{j=1}^{T}[-\frac{1}{2}\frac{G_{j}^{2}}{(H_{j}+\lambda)}]+\gamma T
+\end{eqnarray*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+This is now a scoring function for our tree structure - given any candidate
+ tree, we immediately check this function and the one with the lowest output
+ wins.
+ But practically, we can't grow all trees and test them - instead, we will
+ grow the tree layer by layer.
+ Consider the case of one node, and the tree wondering if it should perform
+ another split.
+ Right before the split, the node is carrying a contribution to the loss
+ function equal to
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+-\frac{1}{2}\frac{G_{j}^{2}}{(H_{j}+\lambda)}+\gamma
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If it attempts a split, where there once was one leaf there are now two.
+ The contribution to the loss function is
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+-\frac{1}{2}\frac{G_{L}^{2}}{(H_{L}+\lambda)}-\frac{1}{2}\frac{G_{R}^{2}}{(H_{R}+\lambda)}+2\gamma
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where we've used the subscript 
+\begin_inset Formula $L$
+\end_inset
+
+ and 
+\begin_inset Formula $R$
+\end_inset
+
+ to denote the left leaf and right leaf respectively.
+\end_layout
+
+\begin_layout Standard
+As such, the split should be attempted only if the contribution to the loss
+ of the children split is less than the parent split.
+ I.e.
+ we want
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\sum children<parent
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+And then we'll get a gain of
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray*}
+Gain & = & parent-\sum children\\
+ & = & -\frac{1}{2}\frac{(G_{L}+G_{R})^{2}}{(H_{L}+H_{R}+\lambda)}+\gamma-[-\frac{1}{2}\frac{G_{L}^{2}}{(H_{L}+\lambda)}-\frac{1}{2}\frac{G_{R}^{2}}{(H_{R}+\lambda)}+2\gamma]\\
+ & = & \frac{1}{2}\{\frac{G_{L}^{2}}{H_{L}+\lambda}+\frac{G_{R}^{2}}{H_{R}+\lambda}-\frac{(G_{L}+G_{R})^{2}}{(H_{L}+H_{R}+\lambda)}\}-\gamma
+\end{eqnarray*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+With this, we can see why 
+\begin_inset Formula $\gamma$
+\end_inset
+
+ is known as minimum-split-loss.
+ So the algorithm will consider splitting a leaf based on a feature by checking
+ the above equation - and thus the tree is grown layer by layer.
+\end_layout
+
+\begin_layout Standard
+Up until now, we have not specified just what 
+\begin_inset Formula $G$
+\end_inset
+
+ and 
+\begin_inset Formula $H$
+\end_inset
+
+ is.
+ (Remember - the differentiation is against 
+\begin_inset Formula $\hat{y}^{t-1}$
+\end_inset
+
+ !).
+ So we'll make that concrete by considering two cases - quadratic loss and
+ logistic loss.
+\end_layout
+
+\begin_layout Standard
+For convenience of writing, we'll set 
+\begin_inset Formula $\hat{y}^{t-1}=p$
+\end_inset
+
+ .
+ One can think of 
+\begin_inset Formula $p$
+\end_inset
+
+ as 'prediction', since it's basically the prediciton of the previous ensemble
+ at 
+\begin_inset Formula $t-1$
+\end_inset
+
+.
+ It'll also become apparent when we consider logistic loss why we want 
+\begin_inset Formula $p$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsubsection*
+Quadratic Loss
+\end_layout
+
+\begin_layout Standard
+The quadratic loss function is 
+\begin_inset Formula $l(y,p)=(y-p)^{2}$
+\end_inset
+
+.
+ Thus we have that 
+\begin_inset Formula $\frac{dl}{dp}=p-y$
+\end_inset
+
+ and 
+\begin_inset Formula $\frac{d^{2}l}{dp^{2}}=1$
+\end_inset
+
+.
+ In this case, min_child_weight is the number of data points in the leaf.
+\end_layout
+
+\begin_layout Subsubsection*
+Logistic Loss
+\end_layout
+
+\begin_layout Standard
+I can never remember the formula for logistic loss, so it helps to reconstruct
+ it from first principles.
+ Being logistic, we're thinking of classification, just like a Bernoulli
+ variable:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+y=\begin{cases}
+1 & p\\
+0 & 1-p
+\end{cases}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+where it can take the value 
+\begin_inset Formula $1$
+\end_inset
+
+ with probability 
+\begin_inset Formula $p$
+\end_inset
+
+ or 
+\begin_inset Formula $0$
+\end_inset
+
+ with probability 
+\begin_inset Formula $1-p$
+\end_inset
+
+.
+ Then the MLE estimate of 
+\begin_inset Formula $p$
+\end_inset
+
+ is 
+\begin_inset Formula $MLE(p)=\prod p^{y}(1-p)^{1-y}$
+\end_inset
+
+.
+ Every 
+\begin_inset Formula $y=1$
+\end_inset
+
+ we observe contributes 
+\begin_inset Formula $p$
+\end_inset
+
+ to the likelihood, while every 
+\begin_inset Formula $y=0$
+\end_inset
+
+ contributes 
+\begin_inset Formula $1-p$
+\end_inset
+
+.
+ From here, all we need to do is take the logarithm and append a negative,
+ since we want to maximize MLE but the framework requires a loss to minimize.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+l(p)=-\{\sum(ylnp+(1-y)ln(1-p)\}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+With this loss, we can find the gradient and hessian:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray*}
+\frac{dl}{dp} & = & \sum(\frac{-y}{p}-\frac{(1-y)}{1-p})\\
+ & = & \sum\frac{-y(1-p)+(1-y)p}{p(1-p)}\\
+ & = & \sum\frac{p-y}{p(1-p)}
+\end{eqnarray*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If we check the source code for xgboost, we'll find that is not what the
+ gradient should be.
+ Where did we go wrong? The answer is the previous prediction has been 
+\emph on
+sigmoided
+\emph default
+, to forcefully put it between 0 and 1 as we required in classification.
+ So we don't actually have 
+\begin_inset Formula $p$
+\end_inset
+
+.
+ We have 
+\begin_inset Formula $\sigma(p)$
+\end_inset
+
+, where 
+\begin_inset Formula $\sigma$
+\end_inset
+
+ is the sigmoid function.
+\end_layout
+
+\begin_layout Standard
+In the above, we replace every 
+\begin_inset Formula $p$
+\end_inset
+
+ we see with 
+\begin_inset Formula $\sigma(p)$
+\end_inset
+
+ instead.
+ Then we add in another 
+\begin_inset Formula $\frac{d\sigma}{dp}=\sigma(1-\sigma)$
+\end_inset
+
+, by the chain rule.
+ With this, we end up with
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray*}
+\frac{dl}{dp} & = & \sum\frac{(\sigma(p)-y)}{\sigma(p)(1-\sigma(p))}*\frac{d\sigma}{dp}\\
+ & = & \sum\frac{(\sigma(p)-y)}{\sigma(p)(1-\sigma(p))}*\sigma(p)(1-\sigma(p))\\
+ & = & \sum(\sigma(p)-y))
+\end{eqnarray*}
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Which is exactly what is in the source code.
+ The hessians are:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\frac{d^{2}l}{dp^{2}}=\sigma(1-\sigma)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+And min_child_weight is the sum of this.
+ What shall we make of this expression? It is close to zero when 
+\begin_inset Formula $\sigma$
+\end_inset
+
+ is close to 0 or 1, i.e.
+ the model is very confident in its prediction.
+ This is maximized when 
+\begin_inset Formula $\sigma=0.5$
+\end_inset
+
+, when the model is basically tossing a coin to decide.
+ So we can think of this as the amount of 'unexplained mass' in a leaf.
+ If the leaf is classifying very well, you need a lot of points in this
+ leaf before the tree considers another split.
+ If the leaf isn't, relatively less points are needed before the tree considers
+ another split.
+\end_layout
+
+\end_body
+\end_document
